@@ -1,6 +1,7 @@
-// Reads an image File, downscales it, and returns a JPEG Blob ready to upload.
-// Resizing keeps photos reasonably sized on the server and the wire.
-export function fileToResizedBlob(file, maxSize = 1600, quality = 0.85) {
+// Reads an image File, downscales it, and returns a Blob ready to upload.
+// `mime` defaults to JPEG (for photos); pass 'image/png' to keep transparency
+// (used for stamps). Resizing keeps files reasonably sized.
+export function fileToResizedBlob(file, { maxSize = 1600, quality = 0.85, mime = 'image/jpeg' } = {}) {
   return new Promise((resolve, reject) => {
     if (!file.type.startsWith('image/')) {
       reject(new Error(`${file.name} is not an image`))
@@ -24,7 +25,7 @@ export function fileToResizedBlob(file, maxSize = 1600, quality = 0.85) {
         canvas.getContext('2d').drawImage(img, 0, 0, width, height)
         canvas.toBlob(
           (blob) => (blob ? resolve(blob) : reject(new Error('Could not encode image'))),
-          'image/jpeg',
+          mime,
           quality,
         )
       }

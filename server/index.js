@@ -50,11 +50,15 @@ async function writeTrip(trip) {
 // Remove uploaded images no longer referenced by the gallery (skip very recent
 // files, which may be mid-upload from another session).
 async function gcUploads(trip) {
-  const used = new Set(
-    (trip.gallery || [])
+  const used = new Set([
+    ...(trip.gallery || [])
       .filter((g) => g.type === 'image' && typeof g.src === 'string')
       .map((g) => path.basename(g.src)),
-  )
+    // Stamp images live in the same uploads folder — keep them too.
+    ...(trip.stamps || [])
+      .filter((s) => typeof s.image === 'string' && s.image)
+      .map((s) => path.basename(s.image)),
+  ])
   const files = await fsp.readdir(uploadsDir)
   const now = Date.now()
   for (const f of files) {
@@ -112,10 +116,17 @@ app.put('/api/trip', requireAuth, async (req, res) => {
 })
 
 // Authenticated image upload (stored as a file, returns its URL).
+const EXT_BY_MIME = {
+  'image/png': '.png',
+  'image/jpeg': '.jpg',
+  'image/webp': '.webp',
+  'image/gif': '.gif',
+}
 const upload = multer({
   storage: multer.diskStorage({
     destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, _file, cb) => cb(null, crypto.randomBytes(12).toString('hex') + '.jpg'),
+    filename: (_req, file, cb) =>
+      cb(null, crypto.randomBytes(12).toString('hex') + (EXT_BY_MIME[file.mimetype] || '.jpg')),
   }),
   limits: { fileSize: 8 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => cb(null, file.mimetype.startsWith('image/')),

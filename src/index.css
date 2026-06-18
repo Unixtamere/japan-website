@@ -915,6 +915,214 @@ body {
   line-height: 1.4;
 }
 
+/* ── Stamps (achievement stamp rally) ── */
+.stamps-sub {
+  margin: -0.4rem 0 1.2rem;
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.stamp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 1.1rem;
+  justify-items: center;
+}
+
+.stamp {
+  position: relative;
+  margin: 0;
+  width: 138px;
+  height: 138px;
+}
+
+.stamp-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px dashed var(--ink-soft);
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  padding: 0.5rem;
+  text-align: center;
+  font-family: var(--font);
+  color: var(--ink-soft);
+  cursor: pointer;
+  opacity: 0.55;
+  filter: grayscale(1);
+  transform: rotate(var(--tilt));
+  transition: transform 0.15s ease;
+}
+
+.stamp-face:disabled {
+  cursor: default;
+}
+
+.stamp.is-earned .stamp-face {
+  border-style: double;
+  border-width: 5px;
+  border-color: var(--stamp-ink);
+  color: var(--stamp-ink);
+  opacity: 0.92;
+  filter: none;
+  animation: stamp-in 0.35s ease;
+}
+
+.stamp.is-earned .stamp-face::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stamp-ink);
+  opacity: 0.65;
+}
+
+.stamp-face:not(:disabled):hover {
+  transform: rotate(var(--tilt)) scale(1.06);
+}
+
+.stamp-face:not(:disabled):active {
+  transform: rotate(var(--tilt)) scale(0.88);
+}
+
+.stamp-emoji {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.stamp-img {
+  width: 58px;
+  height: 58px;
+  object-fit: contain;
+}
+
+.stamp-label {
+  font-weight: 900;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: 1.1;
+}
+
+.stamp-date {
+  font-size: 0.62rem;
+  opacity: 0.85;
+}
+
+.stamp-delete {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 0.78rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.stamp:hover .stamp-delete {
+  opacity: 1;
+}
+
+.stamp-delete:hover {
+  background: #d96b6b;
+}
+
+@keyframes stamp-in {
+  0% {
+    transform: rotate(var(--tilt)) scale(1.7);
+    opacity: 0;
+  }
+  55% {
+    transform: rotate(var(--tilt)) scale(0.9);
+  }
+  100% {
+    transform: rotate(var(--tilt)) scale(1);
+    opacity: 0.92;
+  }
+}
+
+.stamp-form-row {
+  align-items: center;
+}
+
+.stamp-swatches {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+  padding: 0;
+}
+
+.swatch--active {
+  outline: 2px solid var(--ink);
+  outline-offset: 2px;
+}
+
+.stamp-earned-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.stamp-upload-preview {
+  position: relative;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid var(--pink-soft);
+  background: var(--pink-bg);
+  display: grid;
+  place-items: center;
+}
+
+.stamp-upload-preview img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.stamp-upload-clear {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: #d96b6b;
+  color: #fff;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.stamp-upload-hint {
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  align-self: center;
+}
+
 /* ── Gallery ── */
 .gallery-controls {
   display: flex;

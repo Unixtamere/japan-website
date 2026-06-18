@@ -9,6 +9,7 @@ import { Buddy } from './components/Characters.jsx'
 import Countdown from './components/Countdown.jsx'
 import Flights from './components/Flights.jsx'
 import Activities from './components/Activities.jsx'
+import Stamps from './components/Stamps.jsx'
 import Gallery from './components/Gallery.jsx'
 import Lock from './components/Lock.jsx'
 
@@ -118,6 +119,35 @@ export default function App() {
       activities: [...t.activities, { id: 'a' + Date.now(), done: false, ...data }],
     }))
 
+  // ── Stamps ──
+  // Upload a PNG (transparency kept) and return its URL for use as a stamp face.
+  const uploadStampImage = async (file) => {
+    const blob = await fileToResizedBlob(file, { maxSize: 512, mime: 'image/png' })
+    return api.uploadImage(blob, auth.token)
+  }
+
+  const addStamp = (data) =>
+    updateTrip((t) => ({
+      ...t,
+      stamps: [
+        ...(t.stamps ?? []),
+        { id: 's' + Date.now(), tilt: Math.round(Math.random() * 16 - 8), ...data },
+      ],
+    }))
+
+  const toggleStamp = (id) =>
+    updateTrip((t) => ({
+      ...t,
+      stamps: (t.stamps ?? []).map((s) =>
+        s.id === id
+          ? { ...s, earned: !s.earned, date: !s.earned && !s.date ? new Date().toISOString().slice(0, 10) : s.date }
+          : s,
+      ),
+    }))
+
+  const deleteStamp = (id) =>
+    updateTrip((t) => ({ ...t, stamps: (t.stamps ?? []).filter((s) => s.id !== id) }))
+
   // ── Gallery ──
   async function addGalleryImages(files) {
     const urls = []
@@ -186,6 +216,14 @@ export default function App() {
           onToggle={toggleActivity}
           onDelete={deleteActivity}
           onAdd={addActivity}
+          canEdit={canEdit}
+        />
+        <Stamps
+          stamps={trip.stamps ?? []}
+          onAdd={addStamp}
+          onToggle={toggleStamp}
+          onDelete={deleteStamp}
+          onUpload={uploadStampImage}
           canEdit={canEdit}
         />
         <Gallery

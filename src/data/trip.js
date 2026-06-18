@@ -137,4 +137,12 @@ export const activities = [
 // Photos and YouTube videos you add in the browser are stored here.
 export const gallery = []
 
-export const defaultTrip = { tripMeta, flights, activities, gallery }
+// Achievement "stamps" — collect one for each milestone (stamp-rally style).
+export const stamps = [
+  { id: 's1', emoji: '⛩️', label: 'First Shrine', color: '#d6455d', earned: false, tilt: -5 },
+  { id: 's2', emoji: '🍜', label: 'Ramen Master', color: '#4a5e9e', earned: false, tilt: 4 },
+  { id: 's3', emoji: '🗻', label: 'Saw Mt. Fuji', color: '#3f9b6e', earned: false, tilt: -3 },
+  { id: 's4', emoji: '🦌', label: 'Met Nara Deer', color: '#c9952f', earned: false, tilt: 6 },
+]
+
+export const defaultTrip = { tripMeta, flights, activities, gallery, stamps }
