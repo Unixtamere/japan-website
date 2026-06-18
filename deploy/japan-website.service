@@ -1,0 +1,24 @@
+# systemd unit for the Japan Trip Tracker.
+# Install to /etc/systemd/system/japan-website.service, then:
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now japan-website
+#
+# Adjust WorkingDirectory, User, and the node path (run `which node`) to match
+# your server.
+
+[Unit]
+Description=Japan Trip Tracker
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/japan-website
+ExecStart=/usr/bin/node server/index.js
+EnvironmentFile=/var/www/japan-website/.env
+Environment=NODE_ENV=production
+Environment=PORT=3001
+Restart=on-failure
+User=www-data
+
+[Install]
+WantedBy=multi-user.target
