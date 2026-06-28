@@ -10,6 +10,11 @@ This app is a Vite/React frontend plus a Node server
 
 Recommended stack: **Node + nginx + Let's Encrypt** on Ubuntu/Debian.
 
+> 🐳 **Prefer Docker?** Skip sections 1–4 and jump to
+> [Running with Docker + Traccar + HTTPS](#running-with-docker--traccar--https)
+> at the bottom — that's the one-command path that also brings up the live
+> location server.
+
 > ⚠️ **Serve over HTTPS.** The passcode is sent to the server on login; without
 > TLS it would travel in clear text. Certbot (step 5) sets this up.
 
@@ -130,3 +135,140 @@ location /api/ {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
+
+---
+
+## Running with Docker + Traccar + HTTPS
+
+This is the recommended single-box setup: the trip site **and** the Traccar
+live-location server run as containers (`compose.yml`), while nginx on the host
+terminates TLS for both. A ~2 GB / 2 vCPU VPS handles it comfortably; 4 GB gives
+headroom for building on the box.
+
+### 1. DNS
+
+Point **two** A records at the VPS IP before requesting certificates:
+
+- `your-domain.com` → the trip site
+- `traccar.your-domain.com` → the Traccar web UI
+
+### 2. Install Docker + nginx + certbot
+
+```bash
+curl -fsSL https://get.docker.com | sudo sh
+sudo apt-get install -y nginx certbot python3-certbot-nginx
+```
+
+### 3. Secrets
+
+```bash
+cd /var/www/japan-website        # wherever you cloned the repo
+cat > .env <<'EOF'
+AERODATABOX_KEY=your_rapidapi_key_here
+EDIT_PASSCODE=choose-a-private-passcode
+# Traccar — fill these in AFTER step 5 once you've created the account.
+TRACCAR_EMAIL=
+TRACCAR_PASSWORD=
+TRACCAR_DEVICE_ID=
+EOF
+```
+
+`compose.yml` reads this file automatically. `TRACCAR_URL` is already set to
+`http://traccar:8082` inside compose — the web container reaches Traccar over the
+internal Docker network, so you don't set it here.
+
+### 4. Bring up the containers
+
+```bash
+sudo docker compose up -d --build
+```
+
+This starts `web` (on `127.0.0.1:3001`) and `traccar` (UI on `127.0.0.1:8082`,
+device port `5055` open to the internet). Only nginx faces the public web for the
+two HTTP services; `5055` is the one port your phone pushes GPS to directly.
+
+### 5. Create your Traccar login + device
+
+```bash
+# temporarily reachable via the IP, or wait until nginx+TLS is up in step 7
+```
+
+Open `https://traccar.your-domain.com` (after step 7) or `http://VPS_IP:8082`
+(before it), then:
+
+1. Register — **the first account you create becomes the admin.** That
+   email/password go into `.env` as `TRACCAR_EMAIL` / `TRACCAR_PASSWORD`.
+2. **+ Add Device** → set a name and a unique **Identifier**. Note the numeric
+   device ID it's assigned → that's `TRACCAR_DEVICE_ID` (optional; blank uses the
+   first device on the account).
+3. On your phone, install **Traccar Client** (iOS/Android) and set:
+   - Server URL: `http://YOUR_VPS_IP:5055`
+   - Device identifier: the same Identifier from step 2
+
+Then update `.env` and reload the web container so it picks up the credentials:
+
+```bash
+sudo docker compose up -d web
+```
+
+### 6. nginx config
+
+```bash
+sudo cp deploy/nginx.conf /etc/nginx/sites-available/japan-website
+sudo sed -i 's/your-domain.com/REALDOMAIN/g' /etc/nginx/sites-available/japan-website  # or edit by hand
+sudo ln -s /etc/nginx/sites-available/japan-website /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+```
+
+`deploy/nginx.conf` already contains both server blocks (site + Traccar
+subdomain, with the websocket headers Traccar's live map needs).
+
+### 7. HTTPS for both names with Let's Encrypt
+
+One certbot command covers both hostnames and rewrites the nginx config to add
+the TLS blocks and HTTP→HTTPS redirects:
+
+```bash
+sudo certbot --nginx \
+  -d your-domain.com \
+  -d traccar.your-domain.com \
+  --redirect --agree-tos -m you@example.com
+```
+
+Certbot installs a systemd timer that auto-renews (certs last 90 days); verify
+with:
+
+```bash
+sudo certbot renew --dry-run
+```
+
+### 8. Firewall
+
+Open only what you need:
+
+```bash
+sudo ufw allow OpenSSH
+sudo ufw allow 'Nginx Full'   # 80 + 443
+sudo ufw allow 5055/tcp       # Traccar device protocol (your phone -> server)
+sudo ufw enable
+```
+
+### Updating later
+
+```bash
+cd /var/www/japan-website
+git pull
+sudo docker compose up -d --build
+```
+
+Named volumes (`japan-data`, `traccar-data`, `traccar-logs`) survive rebuilds —
+your trip, photos, and location history persist. Back them up periodically:
+
+```bash
+sudo docker run --rm -v japan-website_traccar-data:/d -v "$PWD":/b alpine \
+  tar czf /b/traccar-backup.tgz -C /d .
+```
+
+> ⚠️ **Don't expose Traccar's `8082` or `5055` more than needed.** `8082` stays
+> on localhost (nginx fronts it with TLS); `5055` is plain TCP by design — it
+> only carries position reports, but keep it to the single port above.

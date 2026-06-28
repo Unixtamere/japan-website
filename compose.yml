@@ -2,8 +2,9 @@ services:
   web:
     build:
       context: .
+    # Only the host's nginx talks to this — bind to localhost, not 0.0.0.0.
     ports:
-      - "3001:3001"
+      - "127.0.0.1:3001:3001"
     volumes:
       # Persists trip.json and uploaded photos across restarts/rebuilds.
       - japan-data:/app/server/data
@@ -12,7 +13,30 @@ services:
       # Paste your values here, or put them in a .env file next to compose.yml.
       AERODATABOX_KEY: "${AERODATABOX_KEY:-}"
       EDIT_PASSCODE: "${EDIT_PASSCODE:-}"
+      # Live-location proxy. "traccar" resolves to the service below over the
+      # internal compose network, so the API call never leaves the box.
+      TRACCAR_URL: "http://traccar:8082"
+      TRACCAR_EMAIL: "${TRACCAR_EMAIL:-}"
+      TRACCAR_PASSWORD: "${TRACCAR_PASSWORD:-}"
+      TRACCAR_DEVICE_ID: "${TRACCAR_DEVICE_ID:-}"
+    depends_on:
+      - traccar
+    restart: unless-stopped
+
+  traccar:
+    image: traccar/traccar:latest
+    ports:
+      # Web UI + REST API — localhost only; nginx terminates TLS in front of it.
+      - "127.0.0.1:8082:8082"
+      # Device protocol port your phone (Traccar Client / OsmAnd) pushes GPS to.
+      # This one MUST be reachable from the internet, so bind it publicly.
+      - "5055:5055"
+    volumes:
+      - traccar-data:/opt/traccar/data    # embedded H2 database (fine for personal use)
+      - traccar-logs:/opt/traccar/logs
     restart: unless-stopped
 
 volumes:
   japan-data:
+  traccar-data:
+  traccar-logs:
