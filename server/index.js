@@ -23,6 +23,10 @@ const PORT = process.env.PORT || 3001
 const RAPIDAPI_HOST = 'aerodatabox.p.rapidapi.com'
 const KEY = process.env.AERODATABOX_KEY
 const PASSCODE = process.env.EDIT_PASSCODE || ''
+const TRACCAR_URL = (process.env.TRACCAR_URL || '').replace(/\/$/, '')
+const TRACCAR_EMAIL = process.env.TRACCAR_EMAIL || ''
+const TRACCAR_PASSWORD = process.env.TRACCAR_PASSWORD || ''
+const TRACCAR_DEVICE_ID = process.env.TRACCAR_DEVICE_ID || ''
 
 // ── Storage ──
 const dataDir = path.join(__dirname, 'data')
@@ -134,6 +138,40 @@ const upload = multer({
 app.post('/api/upload', requireAuth, upload.single('image'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'No image uploaded.' })
   res.json({ url: `/uploads/${req.file.filename}` })
+})
+
+// Live location proxy — fetches latest position from Traccar server.
+app.get('/api/location', async (_req, res) => {
+  if (!TRACCAR_URL || !TRACCAR_EMAIL || !TRACCAR_PASSWORD) {
+    return res.status(503).json({
+      error: 'TRACCAR_URL, TRACCAR_EMAIL, and TRACCAR_PASSWORD must be set in .env',
+    })
+  }
+  try {
+    const auth = Buffer.from(`${TRACCAR_EMAIL}:${TRACCAR_PASSWORD}`).toString('base64')
+    const qs = TRACCAR_DEVICE_ID ? `?deviceId=${encodeURIComponent(TRACCAR_DEVICE_ID)}` : ''
+    const upstream = await fetch(`${TRACCAR_URL}/api/positions${qs}`, {
+      headers: { Authorization: `Basic ${auth}`, Accept: 'application/json' },
+    })
+    if (!upstream.ok) {
+      return res.status(upstream.status).json({ error: `Traccar returned ${upstream.status}` })
+    }
+    const positions = await upstream.json()
+    const p = Array.isArray(positions) ? positions[0] : null
+    if (!p) return res.status(404).json({ error: 'No position data found for this device.' })
+    res.json({
+      lat: p.latitude,
+      lon: p.longitude,
+      speed: p.speed,       // knots
+      course: p.course,
+      altitude: p.altitude,
+      accuracy: p.accuracy,
+      fixTime: p.fixTime,
+      deviceTime: p.deviceTime,
+    })
+  } catch (err) {
+    res.status(502).json({ error: 'Could not reach Traccar: ' + String(err) })
+  }
 })
 
 // Live flight status proxy.

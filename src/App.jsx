@@ -5,6 +5,7 @@ import { fileToResizedBlob } from './utils/image.js'
 import { fetchFlightStatus } from './services/flightApi.js'
 import Petals from './components/Petals.jsx'
 import Header from './components/Header.jsx'
+import LocationPage from './components/LocationPage.jsx'
 import { Buddy } from './components/Characters.jsx'
 import Countdown from './components/Countdown.jsx'
 import Flights from './components/Flights.jsx'
@@ -17,6 +18,7 @@ export default function App() {
   const auth = useAuth()
   const canEdit = auth.loggedIn
 
+  const [page, setPage] = useState('main') // 'main' | 'location'
   const [trip, setTrip] = useState(null)
   const [status, setStatus] = useState('loading') // loading | ready | error
   const tripRef = useRef(null) // latest trip, for saves/polling
@@ -173,6 +175,10 @@ export default function App() {
   const deleteGalleryItem = (id) =>
     updateTrip((t) => ({ ...t, gallery: (t.gallery ?? []).filter((g) => g.id !== id) }))
 
+  if (page === 'location') {
+    return <LocationPage onBack={() => setPage('main')} />
+  }
+
   if (status === 'loading') {
     return (
       <div className="app">
@@ -202,6 +208,9 @@ export default function App() {
       <Petals />
       <main className="container">
         <div className="topbar">
+          <button className="location-nav-btn" onClick={() => setPage('location')}>
+            📍 My Location
+          </button>
           <Lock loggedIn={auth.loggedIn} onLogin={auth.login} onLogout={auth.logout} />
         </div>
         <div className="hero-row">

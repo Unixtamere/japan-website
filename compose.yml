@@ -1,0 +1,18 @@
+services:
+  web:
+    build:
+      context: .
+    ports:
+      - "3001:3001"
+    volumes:
+      # Persists trip.json and uploaded photos across restarts/rebuilds.
+      - japan-data:/app/server/data
+    environment:
+      PORT: "3001"
+      # Paste your values here, or put them in a .env file next to compose.yml.
+      AERODATABOX_KEY: "${AERODATABOX_KEY:-}"
+      EDIT_PASSCODE: "${EDIT_PASSCODE:-}"
+    restart: unless-stopped
+
+volumes:
+  japan-data:
